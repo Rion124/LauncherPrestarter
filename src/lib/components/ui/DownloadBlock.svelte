@@ -38,14 +38,18 @@
   .speed-block {
     display: flex;
     width: 5rem;
-    height: 80px;
+    height: 72px;
     flex-direction: column;
     flex-wrap: nowrap;
     justify-content: center;
     align-items: center;
     gap: 0.375rem;
-    border-radius: 0.75rem;
-    box-shadow: 0px 5px 12px 6px $shadow;
+    // Card styled like the launcher's panels: dark fill, faint ember rim.
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid $stroke;
+    border-radius: 0.6rem;
+    margin-right: 0.75rem;
+    box-shadow: 0 6px 16px $shadow;
     position: relative;
 
     > div {

@@ -100,7 +100,11 @@ jobs:
         with:
           name: prestarter-${{ matrix.name }}
           if-no-files-found: warn
+          # productName is "Alterra", so the binary may be named after either it
+          # or the cargo package — collect both plus any bundles.
           path: |
+            src-tauri/target/${{ matrix.target }}/release/Alterra
+            src-tauri/target/${{ matrix.target }}/release/Alterra.exe
             src-tauri/target/${{ matrix.target }}/release/Prestarter
             src-tauri/target/${{ matrix.target }}/release/Prestarter.exe
             src-tauri/target/${{ matrix.target }}/release/bundle/**

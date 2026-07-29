@@ -1,12 +1,30 @@
 //
-// Colors 
+// Colors — Alterra dark fantasy palette. Same values as the launcher theme, so
+// the prestarter and the launcher window read as one product.
 //
 
-$base: #FFFFFF;
-$text-primary: #2C2C2C;
-$text-secondary: #D7D7D7;
-$text-description: #707070;
-$shadow: #D7D7D7EE;
-$active: linear-gradient(90deg, #7248A7 10.39%, #2C03A8 64.61%);
-$progressbar: linear-gradient(90deg, #8D4CE0 10.39%, #5711FA 93.28%);
-$error: #DB4D4D;
+$ember: #F2871E;
+$ember-bright: #FFB24C;
+$ember-deep: #B4470F;
+
+$iron-900: #120E0A;
+$iron-850: #171009;
+$iron-800: #1D150E;
+$iron-700: #271D14;
+
+$parchment: #E7D7B6;
+$parchment-dim: #BFAC8D;
+$bronze: #C08A3E;
+
+$stroke: rgba(255, 180, 90, 0.14);
+$stroke-strong: rgba(255, 180, 90, 0.32);
+
+// Roles used by the components
+$base: rgba(0, 0, 0, 0.45);
+$text-primary: $parchment;
+$text-secondary: $parchment-dim;
+$text-description: $parchment-dim;
+$shadow: rgba(0, 0, 0, 0.55);
+$active: linear-gradient(90deg, $ember-bright 10.39%, $ember 64.61%);
+$progressbar: linear-gradient(90deg, $ember-deep 0%, $ember 45%, $ember-bright 100%);
+$error: #C0442E;

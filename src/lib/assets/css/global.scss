@@ -1,12 +1,28 @@
 @forward "colors";
 
+// Same two families the launcher UI uses: Cinzel for the wordmark, Inter for text.
 @font-face {
-    font-family: 'Open Sans';
+    font-family: 'Cinzel';
     font-style: normal;
-    font-weight: 100 900;
-    font-stretch: 100%;
+    font-weight: 700;
     font-display: swap;
-    src: url('$lib/assets/fonts/OpenSans-VariableFont.ttf');
+    src: url('$lib/assets/fonts/Cinzel-Bold.ttf');
+}
+
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('$lib/assets/fonts/Inter-Regular.ttf');
+}
+
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('$lib/assets/fonts/Inter-SemiBold.ttf');
 }
 
 :root {
@@ -22,7 +38,7 @@
 }
 
 body {
-    font-family: "Open-Sans";
+    font-family: "Inter";
     -moz-user-select: none;
     -webkit-user-select: none;
     -ms-user-select: none;

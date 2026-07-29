@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "prestarter",
+  "productName": "Alterra",
   "version": "2.1.0",
-  "identifier": "com.gravitlauncher.prestarter",
+  "identifier": "net.alterra.launcher.prestarter",
   "build": {
     "beforeDevCommand": "yarn dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "GravitLauncher Prestarter",
+        "title": "Alterra",
         "width": 512,
         "height": 300,
         "decorations": false,

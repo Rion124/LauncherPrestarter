@@ -111,7 +111,7 @@
 </script>
 
 <svelte:head>
-    <title>GravitLauncher Prestarter</title>
+    <title>Alterra</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </svelte:head>
 
@@ -130,7 +130,8 @@
     <div class="layout">
         <div data-tauri-drag-region class="logo-container">
             <img data-tauri-drag-region alt="logo" src={assets.logo} />
-            <p data-tauri-drag-region>{appConfig.name}</p>
+            <p data-tauri-drag-region class="wordmark">{appConfig.name}</p>
+            <p data-tauri-drag-region class="tagline">{appConfig.tagline}</p>
         </div>
 
         <DownloadBlock {error} {speedMb} {percentage} {totalLabel} />
@@ -190,13 +191,28 @@
         justify-content: flex-start;
         > img {
             display: block;
-            width: 7rem;
-            height: 7rem;
+            width: 4.6rem;
+            height: 4.6rem;
+            filter: drop-shadow(0 0 12px rgba(242, 135, 30, 0.35));
         }
-        > p {
-            color: $text-primary;
-            font-size: 2.2rem;
-            font-weight: 500;
+        // Wordmark: Cinzel with wide tracking, same as the launcher title bar.
+        > .wordmark {
+            margin-top: 0.4rem;
+            color: $parchment;
+            font-family: "Cinzel", serif;
+            font-size: 2.1rem;
+            font-weight: 700;
+            letter-spacing: 0.18em;
+            text-indent: 0.18em;
+            text-shadow: 0 0 18px rgba(242, 135, 30, 0.35);
+        }
+        > .tagline {
+            margin-top: 0.15rem;
+            color: $bronze;
+            font-size: 0.62rem;
+            font-weight: 600;
+            letter-spacing: 0.34em;
+            text-indent: 0.34em;
         }
     }
 </style>

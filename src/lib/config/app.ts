@@ -1,5 +1,6 @@
 export const appConfig = {
-    name: "GravitLauncher Prestarter",
+    name: "ALTERRA",
+    tagline: "ЛЕГЕНДЫ НЕРЛАДА",
     version: "1.0.0",
     download: {
         speedSamples: 30,
