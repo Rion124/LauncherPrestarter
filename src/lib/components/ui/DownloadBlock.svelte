@@ -58,8 +58,9 @@
       align-items: center;
 
       > strong {
+        font-family: "Inter";
         font-size: 1.5rem;
-        font-weight: 800;
+        font-weight: 600;
         letter-spacing: 0.16px;
         color: transparent;
         background: $active;
@@ -71,15 +72,25 @@
         }
       }
 
+      // Unit under the number: a small tracked caption, like the launcher's
+      // field labels, instead of plain shrunken body text.
       > small {
-        font-size: 0.75rem;
-        color: $text-description;
+        margin-top: 0.1rem;
+        font-family: "Inter";
+        font-size: 0.5rem;
+        font-weight: 600;
+        letter-spacing: 0.16em;
+        text-indent: 0.16em;
+        text-transform: uppercase;
+        color: $bronze;
         text-align: center;
       }
     }
 
     > small {
-      font-size: 0.75rem;
+      font-size: 0.62rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
       color: $text-secondary;
     }
   }
