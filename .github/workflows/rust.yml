@@ -7,6 +7,14 @@ on:
         description: 'Ветка/тег для сборки'
         required: false
         default: 'rust/5.7.x'
+      launcher_url:
+        description: 'URL Launcher.jar — включает режим скачивания (пусто = jar внутри exe, как в оригинале)'
+        required: false
+        default: ''
+      launcher_sha256:
+        description: 'SHA-256 Launcher.jar (необязательно; жёсткая проверка вместо <url>.sha256)'
+        required: false
+        default: ''
 
 env:
   CARGO_TERM_COLOR: always
@@ -75,6 +83,11 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Build (tauri, target ${{ matrix.target }})
+        # Both variables are read at compile time by src-tauri/src/launcher.rs.
+        # Empty launcher_url keeps the upstream behaviour (jar appended to the exe).
+        env:
+          PRESTARTER_LAUNCHER_URL: ${{ inputs.launcher_url }}
+          PRESTARTER_LAUNCHER_SHA256: ${{ inputs.launcher_sha256 }}
         run: yarn tauri build --target ${{ matrix.target }}
 
       - name: Upload artifact
