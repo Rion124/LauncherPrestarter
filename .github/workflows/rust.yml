@@ -15,6 +15,10 @@ on:
         description: 'SHA-256 Launcher.jar (необязательно; жёсткая проверка вместо <url>.sha256)'
         required: false
         default: ''
+      store_dir:
+        description: 'Папка хранения = projectName из LaunchServer (тогда Java, лаунчер и клиент лежат вместе). Пусто = GravitLauncherStore'
+        required: false
+        default: ''
 
 env:
   CARGO_TERM_COLOR: always
@@ -88,6 +92,7 @@ jobs:
         env:
           PRESTARTER_LAUNCHER_URL: ${{ inputs.launcher_url }}
           PRESTARTER_LAUNCHER_SHA256: ${{ inputs.launcher_sha256 }}
+          PRESTARTER_STORE_DIR: ${{ inputs.store_dir }}
         run: yarn tauri build --target ${{ matrix.target }}
 
       - name: Upload artifact

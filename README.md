@@ -113,6 +113,36 @@ LaunchServer раздаёт jar по адресу вида `http(s)://host:port/
 sha256sum Launcher.jar | cut -d' ' -f1 > Launcher.jar.sha256
 ```
 
+### Всё в одной папке
+
+По умолчанию престартер держит Java в своей папке `GravitLauncherStore`, а
+GravitLauncher качает игровой клиент в `<данные приложения>/<projectName>` —
+получаются разные места. Переменная `PRESTARTER_STORE_DIR` задаёт имя папки
+хранения: укажите в ней `projectName` из `LaunchServer.json`, и Java, лаунчер и
+клиент окажутся в одном дереве. Исходники GravitLauncher при этом не меняются —
+престартер просто использует ту же папку, что и он.
+
+```bash
+PRESTARTER_LAUNCHER_URL=https://host/Launcher.jar PRESTARTER_STORE_DIR=Alterra   yarn tauri build
+```
+
+Итоговая раскладка (Windows):
+
+```text
+%APPDATA%/Alterra/
+├── updates/       игровой клиент  (GravitLauncher)
+├── JRE-25/        Java            (престартер)
+├── Launcher.jar   лаунчер         (престартер)
+└── ...            настройки, аккаунты, кэш
+```
+
+Путь к папке данных вычисляется так же, как в `DirBridge.getAppDataDir()`:
+`%APPDATA%` на Windows, `~/.minecraftlauncher` на Linux, `~/minecraft` на macOS.
+
+| Переменная | Что делает |
+|---|---|
+| `PRESTARTER_STORE_DIR` | Имя папки хранения. Пусто — `GravitLauncherStore`, как в оригинале |
+
 > **Важно про безопасность.** Скачанный jar выполняется на машине игрока.
 > Хэш, полученный по обычному `http://`, защищает только от повреждения файла:
 > тот, кто может подменить jar, подменит и хэш. Поэтому раздавайте jar по

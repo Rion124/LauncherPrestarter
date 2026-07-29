@@ -39,12 +39,44 @@ pub fn is_java_outdated(metadata: &Config) -> bool {
 }
 
 
+/// Directory everything is kept in, relative to the platform data dir. Upstream
+/// uses its own "GravitLauncherStore"; set `PRESTARTER_STORE_DIR` to the
+/// LaunchServer `projectName` and Java, the launcher jar and the game client
+/// (which GravitLauncher already puts in `<data dir>/<projectName>`) end up in a
+/// single tree instead of three separate ones.
+pub fn store_dir_name() -> &'static str {
+    match option_env!("PRESTARTER_STORE_DIR") {
+        Some(name) if !name.trim().is_empty() => name.trim(),
+        _ => "GravitLauncherStore",
+    }
+}
+
+/// Mirrors GravitLauncher's `DirBridge.getAppDataDir()` so that both agree on
+/// where the data directory is, on every platform.
 pub fn get_appdata_dir() -> Result<PathBuf> {
-    dirs_next::data_dir().ok_or_else(|| anyhow!("Cannot find AppData directory"))
+    #[cfg(target_os = "windows")]
+    {
+        if let Ok(appdata) = std::env::var("APPDATA") {
+            return Ok(PathBuf::from(appdata));
+        }
+        return dirs_next::data_dir().ok_or_else(|| anyhow!("Cannot find AppData directory"));
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        let home = dirs_next::home_dir().ok_or_else(|| anyhow!("Cannot find home directory"))?;
+        return Ok(home.join(".minecraftlauncher"));
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        let home = dirs_next::home_dir().ok_or_else(|| anyhow!("Cannot find home directory"))?;
+        return Ok(home.join("minecraft"));
+    }
 }
 
 pub fn target_dir() -> Result<PathBuf> {
-    Ok(get_appdata_dir()?.join("GravitLauncherStore"))
+    Ok(get_appdata_dir()?.join(store_dir_name()))
 }
 
 fn config_path() -> Result<PathBuf> {

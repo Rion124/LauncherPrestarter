@@ -4,5 +4,6 @@ fn main() {
     // silently keep the previous launcher URL.
     println!("cargo:rerun-if-env-changed=PRESTARTER_LAUNCHER_URL");
     println!("cargo:rerun-if-env-changed=PRESTARTER_LAUNCHER_SHA256");
+    println!("cargo:rerun-if-env-changed=PRESTARTER_STORE_DIR");
     tauri_build::build()
 }
