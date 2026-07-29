@@ -22,7 +22,11 @@ tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-reqwest = { version = "0.13.4", default-features = false, features = ["blocking", "json", "rustls"] }
+# native-tls (SChannel on Windows) validates against the OS certificate store.
+# Antivirus HTTPS scanning (Kaspersky, Norton, ESET…) re-signs traffic with a root
+# it installs there; with rustls' bundled Mozilla roots every download would fail
+# on those machines.
+reqwest = { version = "0.13.4", default-features = false, features = ["blocking", "json", "native-tls"] }
 anyhow = "1.0"
 thiserror = "2.0"
 zip = { version = "8.6.0", default-features = false, features = ["deflate"] }
