@@ -25,6 +25,14 @@
     src: url('$lib/assets/fonts/Inter-SemiBold.ttf');
 }
 
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('$lib/assets/fonts/Inter-Bold.ttf');
+}
+
 :root {
     background-image: url('$lib/assets/images/bg.svg');
     background-size: cover;

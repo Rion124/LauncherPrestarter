@@ -13,7 +13,7 @@
 <style lang="scss">
   .progress-bar {
     width: 24rem;
-    height: 22px;
+    height: 30px;
     background: $base;
     border: 1px solid $stroke;
     border-radius: 0.4rem;
