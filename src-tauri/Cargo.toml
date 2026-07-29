@@ -30,6 +30,7 @@ dirs-next = "2.0"
 chrono = { version = "0.4.41", features = ["serde"] }
 flate2 = "1.1.2"
 tar = "0.4.46"
+sha2 = "0.10"
 
 [patch.crates-io]
 tao = { git = "https://github.com/GravitLauncher6/tao.git", branch = "dev" }

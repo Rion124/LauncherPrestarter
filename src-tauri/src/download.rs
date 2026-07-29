@@ -88,6 +88,36 @@ fn fetch_emergency_release() -> JavaRelease {
 
 pub type ProgressCallback = dyn Fn(u64, u64);
 
+/// Download a file whose size is not known up front (the launcher jar): the
+/// total reported to the progress callback comes from `Content-Length`, or is 0
+/// when the server does not send it.
+pub fn download_file_auto(url: &str, dest: &PathBuf, progress: &ProgressCallback) -> Result<()> {
+    let client = reqwest::blocking::Client::builder()
+        .connect_timeout(std::time::Duration::from_secs(15))
+        .build()?;
+    let mut response = client
+        .get(url)
+        .send()
+        .map_err(|e| anyhow!("Download failed for {}: {:?}", url, e))?
+        .error_for_status()?;
+    let total_size = response.content_length().unwrap_or(0);
+    let mut file = File::create(dest)?;
+    let mut buffer = [0; 8192];
+    let mut downloaded: u64 = 0;
+
+    loop {
+        let n = response.read(&mut buffer)?;
+        if n == 0 {
+            break;
+        }
+        file.write_all(&buffer[..n])?;
+        downloaded += n as u64;
+        progress(downloaded, total_size);
+    }
+
+    Ok(())
+}
+
 /// Download the file and report progress through the callback.
 pub fn download_file(url: &str, dest: &PathBuf, total_size: u64, progress: &ProgressCallback) -> Result<()> {
     let mut response = reqwest::blocking::get(url).map_err(|e| {

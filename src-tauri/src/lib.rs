@@ -4,6 +4,7 @@
 mod config;
 mod download;
 mod extract;
+mod launcher;
 mod runner;
 
 use download::download_file;
@@ -44,90 +45,120 @@ fn start_download(app_handle: tauri::AppHandle) -> Result<(), String> {
             let _ = handle.emit("extract-progress", ExtractEvent { processed, total });
         };
 
-        let handle = arc_handle.clone();
-        let release = match fetch_latest_release() {
-            Ok(e) => e,
-            Err(e) => {
-                let _ = handle.emit("error", e.to_string());
-                return;
+        // Java may already be installed from an earlier run — only download it
+        // when it is missing or outdated.
+        let jdk_dir = match check_java_ready() {
+            Some(dir) => dir,
+            None => {
+                let handle = arc_handle.clone();
+                let release = match fetch_latest_release() {
+                    Ok(e) => e,
+                    Err(e) => {
+                        let _ = handle.emit("error", e.to_string());
+                        return;
+                    }
+                };
+                let handle = arc_handle.clone();
+                let appdata_dir = match target_dir() {
+                    Ok(e) => e,
+                    Err(e) => {
+                        let _ = handle.emit("error", e.to_string());
+                        return;
+                    }
+                };
+                let jdk_dir = appdata_dir.join(format!("JRE-{}", release.featureVersion));
+                let zip_path = appdata_dir.join(&release.filename);
+
+                let handle = arc_handle.clone();
+                match fs::create_dir_all(&appdata_dir) {
+                    Ok(e) => e,
+                    Err(e) => {
+                        let _ = handle.emit("error", e.to_string());
+                        return;
+                    }
+                }
+
+                let handle = arc_handle.clone();
+                match config::save_version_info(&release.version, release.featureVersion) {
+                    Ok(e) => e,
+                    Err(e) => {
+                        let _ = handle.emit("error", e.to_string());
+                        return;
+                    }
+                }
+
+                let handle = arc_handle.clone();
+                if let Err(e) = download_file(
+                    &release.downloadUrl,
+                    &zip_path,
+                    release.size,
+                    &emit_progress,
+                ) {
+                    let _ = handle.emit("error", e.to_string());
+                    return;
+                }
+
+                let handle = arc_handle.clone();
+                if release.packageType == "tar.gz" {
+                    if let Err(e) = extract_tar_gz(&zip_path, &jdk_dir, &emit_extract, true) {
+                        let _ = handle.emit("error", e.to_string());
+                        return;
+                    }
+                } else {
+                    if let Err(e) = extract_zip(&zip_path, &jdk_dir, &emit_extract, true) {
+                        let _ = handle.emit("error", e.to_string());
+                        return;
+                    }
+                }
+                
+                // Remove zip
+                if let Err(e) = fs::remove_file(&zip_path) {
+                    let _ = handle.emit("error", e.to_string());
+                    return;
+                }
+
+                // Save extracted mark
+                {
+                    let handle = arc_handle.clone();
+                    match File::create(&jdk_dir.join("success-extracted-mark")) {
+                        Ok(_) => {}
+                        Err(e) => {
+                            let _ = handle.emit("error", e.to_string());
+                            return;
+                        }
+                    }
+                }
+
+                jdk_dir
             }
         };
-        let handle = arc_handle.clone();
-        let appdata_dir = match target_dir() {
-            Ok(e) => e,
-            Err(e) => {
-                let _ = handle.emit("error", e.to_string());
-                return;
-            }
-        };
-        let jdk_dir = appdata_dir.join(format!("JRE-{}", release.featureVersion));
-        let zip_path = appdata_dir.join(&release.filename);
 
+        // Launcher jar: downloaded from the server when a URL was baked in at
+        // build time, otherwise the copy appended to this executable.
         let handle = arc_handle.clone();
-        match fs::create_dir_all(&appdata_dir) {
-            Ok(e) => e,
-            Err(e) => {
-                let _ = handle.emit("error", e.to_string());
-                return;
-            }
-        }
-
-        let handle = arc_handle.clone();
-        match config::save_version_info(&release.version, release.featureVersion) {
-            Ok(e) => e,
-            Err(e) => {
-                let _ = handle.emit("error", e.to_string());
-                return;
-            }
-        }
-
-        let handle = arc_handle.clone();
-        if let Err(e) = download_file(
-            &release.downloadUrl,
-            &zip_path,
-            release.size,
-            &emit_progress,
-        ) {
-            let _ = handle.emit("error", e.to_string());
-            return;
-        }
-
-        let handle = arc_handle.clone();
-        if release.packageType == "tar.gz" {
-            if let Err(e) = extract_tar_gz(&zip_path, &jdk_dir, &emit_extract, true) {
-                let _ = handle.emit("error", e.to_string());
-                return;
-            }
-        } else {
-            if let Err(e) = extract_zip(&zip_path, &jdk_dir, &emit_extract, true) {
-                let _ = handle.emit("error", e.to_string());
-                return;
-            }
-        }
-        
-        // Remove zip
-        if let Err(e) = fs::remove_file(&zip_path) {
-            let _ = handle.emit("error", e.to_string());
-            return;
-        }
-
-        // Save extracted mark
-        {
-            let handle = arc_handle.clone();
-            match File::create(&jdk_dir.join("success-extracted-mark")) {
-                Ok(_) => {}
+        let launcher_jar = if launcher::is_download_mode() {
+            match launcher::ensure_launcher_jar(&emit_progress) {
+                Ok(path) => path,
                 Err(e) => {
                     let _ = handle.emit("error", e.to_string());
                     return;
                 }
             }
-        }
+        } else {
+            match runner::self_jar() {
+                Ok(path) => path,
+                Err(e) => {
+                    let _ = handle.emit("error", e.to_string());
+                    return;
+                }
+            }
+        };
 
         let handle = arc_handle.clone();
         let _ = handle.emit("running", ());
 
         let handle = arc_handle.clone();
-        match relaunch_using_java(&jdk_dir) {
+        match relaunch_using_java(&jdk_dir, &launcher_jar) {
             Ok(e) => e,
             Err(e) => {
                 let _ = handle.emit("error", e.to_string());
@@ -162,6 +193,17 @@ struct ExtractEvent {
 
 
 
+/// The launcher jar to start without showing the window: an up to date cached
+/// download, or this executable when the jar is appended to it. `None` means the
+/// jar has to be (re)downloaded, so the UI is shown to report progress.
+fn ready_launcher_jar() -> Option<PathBuf> {
+    if launcher::is_download_mode() {
+        launcher::cached_jar_ready()
+    } else {
+        runner::self_jar().ok()
+    }
+}
+
 fn check_java_ready() -> Option<PathBuf> {
     let config = load_version_info().ok()??;
     let java_dir = target_dir().ok()?.join(format!("JRE-{}", config.java_feature_version));
@@ -178,14 +220,18 @@ fn check_java_ready() -> Option<PathBuf> {
 pub fn run() {
     {
         #[cfg(not(dev))]
+        // Everything already in place (Java installed and, in download mode, an
+        // up to date launcher jar cached): start straight away without any UI.
         if let Some(java_path) = check_java_ready() {
-            match relaunch_using_java(&java_path) {
-                Ok(_) => {},
-                Err(e) => {
-                    println!("{}", e.to_string());
-                },
+            if let Some(launcher_jar) = ready_launcher_jar() {
+                match relaunch_using_java(&java_path, &launcher_jar) {
+                    Ok(_) => {},
+                    Err(e) => {
+                        println!("{}", e.to_string());
+                    },
+                }
+                return;
             }
-            return;
         }
     }
 
