@@ -7,8 +7,12 @@ on:
         description: 'Ветка/тег для сборки'
         required: false
         default: 'rust/5.7.x'
+      config_url:
+        description: 'URL манифеста prestarter.json — тогда адрес лаунчера меняется на сервере без пересборки exe (рекомендуется)'
+        required: false
+        default: ''
       launcher_url:
-        description: 'URL Launcher.jar — включает режим скачивания (пусто = jar внутри exe, как в оригинале)'
+        description: 'URL Launcher.jar напрямую (нужен только если не используешь манифест)'
         required: false
         default: ''
       launcher_sha256:
@@ -90,6 +94,7 @@ jobs:
         # Both variables are read at compile time by src-tauri/src/launcher.rs.
         # Empty launcher_url keeps the upstream behaviour (jar appended to the exe).
         env:
+          PRESTARTER_CONFIG_URL: ${{ inputs.config_url }}
           PRESTARTER_LAUNCHER_URL: ${{ inputs.launcher_url }}
           PRESTARTER_LAUNCHER_SHA256: ${{ inputs.launcher_sha256 }}
           PRESTARTER_STORE_DIR: ${{ inputs.store_dir }}
