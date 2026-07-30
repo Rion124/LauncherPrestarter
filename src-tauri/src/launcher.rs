@@ -9,18 +9,95 @@ use std::{
 
 use crate::{config::target_dir, download::download_file_auto, download::ProgressCallback};
 
-/// URL of the launcher jar, baked in at build time:
+/// URL of a JSON manifest that tells the prestarter where the launcher lives,
+/// baked in at build time:
 ///
 /// ```text
-/// PRESTARTER_LAUNCHER_URL=https://host/Launcher.jar yarn tauri build
+/// PRESTARTER_CONFIG_URL=https://host/prestarter.json yarn tauri build
 /// ```
 ///
-/// When it is not set the prestarter keeps the upstream behaviour: the launcher
-/// jar is expected to be appended to this executable and Java is pointed at the
-/// exe itself. Setting it switches to download mode, which keeps the exe small
-/// (~5 MB instead of ~23 MB) and lets the launcher update without shipping a new
-/// exe to players.
+/// ```json
+/// { "launcherUrl": "https://host/ls/Launcher.jar", "launcherSha256": "" }
+/// ```
+///
+/// Everything that can realistically change later — the jar path, an extra
+/// checksum — is edited on the server instead of shipping players a new exe.
+/// Several comma-separated URLs may be given; they are tried in order, so a
+/// second host can act as a fallback. The last manifest that worked is cached on
+/// disk and reused when the server cannot be reached.
+pub fn config_url() -> Option<&'static str> {
+    non_empty(option_env!("PRESTARTER_CONFIG_URL"))
+}
+
+/// Remote manifest, as served by [`config_url`].
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct RemoteConfig {
+    pub launcher_url: Option<String>,
+    pub launcher_sha256: Option<String>,
+}
+
+static REMOTE: std::sync::OnceLock<RemoteConfig> = std::sync::OnceLock::new();
+
+fn remote_cache_path() -> Option<PathBuf> {
+    Some(target_dir().ok()?.join("prestarter-remote.json"))
+}
+
+/// Fetched once per run: the manifest from the server, or the cached copy of the
+/// last one that worked, or empty (then the baked-in values are used).
+fn remote_config() -> &'static RemoteConfig {
+    REMOTE.get_or_init(|| {
+        let Some(urls) = config_url() else {
+            return RemoteConfig::default();
+        };
+        let client = reqwest::blocking::Client::builder()
+            .timeout(Duration::from_secs(10))
+            .build()
+            .ok();
+        if let Some(client) = client {
+            for url in urls.split(',').map(str::trim).filter(|u| !u.is_empty()) {
+                let fetched = client
+                    .get(url)
+                    .send()
+                    .ok()
+                    .and_then(|r| r.error_for_status().ok())
+                    .and_then(|r| r.text().ok())
+                    .and_then(|body| serde_json::from_str::<RemoteConfig>(&body).ok());
+                if let Some(config) = fetched {
+                    if let Some(path) = remote_cache_path() {
+                        if let Some(parent) = path.parent() {
+                            let _ = fs::create_dir_all(parent);
+                        }
+                        if let Ok(json) = serde_json::to_string_pretty(&config) {
+                            let _ = fs::write(&path, json);
+                        }
+                    }
+                    return config;
+                }
+            }
+        }
+        // Offline: fall back to the last manifest that was fetched successfully.
+        remote_cache_path()
+            .and_then(|p| fs::read_to_string(p).ok())
+            .and_then(|s| serde_json::from_str::<RemoteConfig>(&s).ok())
+            .unwrap_or_default()
+    })
+}
+
+/// Where to download the launcher jar from: the manifest wins, otherwise the URL
+/// baked in at build time (`PRESTARTER_LAUNCHER_URL`).
+///
+/// With neither set the prestarter keeps the upstream behaviour: the jar is
+/// expected to be appended to this executable and Java is pointed at the exe
+/// itself. Either one switches to download mode, which keeps the exe small
+/// (~5 MB instead of ~23 MB) and lets the launcher update on its own.
 pub fn launcher_url() -> Option<&'static str> {
+    if let Some(url) = remote_config().launcher_url.as_deref() {
+        let trimmed = url.trim();
+        if !trimmed.is_empty() {
+            return Some(trimmed);
+        }
+    }
     non_empty(option_env!("PRESTARTER_LAUNCHER_URL"))
 }
 
@@ -69,12 +146,19 @@ fn remote_expected_hash() -> Option<String> {
     }
 }
 
-/// The checksum a downloaded jar has to match, if any is available at all.
+/// The checksum a downloaded jar has to match, if any is available at all:
+/// the baked-in pin wins, then the manifest, then the file served next to the jar.
 fn expected_hash() -> Option<String> {
-    match pinned_sha256() {
-        Some(pinned) => Some(pinned.to_lowercase()),
-        None => remote_expected_hash(),
+    if let Some(pinned) = pinned_sha256() {
+        return Some(pinned.to_lowercase());
     }
+    if let Some(from_manifest) = remote_config().launcher_sha256.as_deref() {
+        let hash = from_manifest.trim().to_lowercase();
+        if hash.len() == 64 && hash.chars().all(|c| c.is_ascii_hexdigit()) {
+            return Some(hash);
+        }
+    }
+    remote_expected_hash()
 }
 
 /// A cached jar that can be launched straight away, without showing any UI.
@@ -88,17 +172,13 @@ pub fn cached_jar_ready() -> Option<PathBuf> {
     if !path.exists() {
         return None;
     }
-    if let Some(pinned) = pinned_sha256() {
-        return match sha256_file(&path) {
-            Ok(actual) if actual.eq_ignore_ascii_case(pinned) => Some(path),
-            _ => None,
-        };
-    }
-    match remote_expected_hash() {
+    match expected_hash() {
         Some(expected) => match sha256_file(&path) {
             Ok(actual) if actual.eq_ignore_ascii_case(&expected) => Some(path),
             _ => None,
         },
+        // Nothing to compare against (offline, or no checksum published) — start
+        // with the jar we already have rather than refusing to launch.
         None => Some(path),
     }
 }
